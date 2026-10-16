@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
-import { query } from "./db/client.js";
+import { query } from "../db/client.js";
 
 export async function createPayment(req: Request, res: Response) {
   const { order_id, amount, customer_email, return_url } = req.body ?? {};

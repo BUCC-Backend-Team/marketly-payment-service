@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
-import { pool } from "./db/client.js";
+import { pool } from "../db/client.js";
 
 type ChargeData = {
   id?: number | string;

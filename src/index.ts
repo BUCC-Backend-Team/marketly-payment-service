@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
-import { createPayment } from "./payments.js";
-import { handlePaystackWebhook } from "./webhooks.js";
+import { createPayment } from "./payments/index.js";
+import { handlePaystackWebhook } from "./webhooks/index.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
