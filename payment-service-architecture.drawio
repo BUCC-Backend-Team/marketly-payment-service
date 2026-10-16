@@ -1,14 +1,11 @@
 <mxfile host="app.diagrams.net" agent="Composer">
   <diagram id="paymentService01" name="Payment Service Architecture">
-    <mxGraphModel dx="821" dy="629" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1500" background="light-dark(#FFFFFF,#FFFFFF)" math="0" shadow="0">
+    <mxGraphModel dx="1447" dy="1109" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1500" background="light-dark(#FFFFFF,#FFFFFF)" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;fontColor=light-dark(#000000,#000000);" value="Payment Service — System Design (Phase 3)" vertex="1">
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;fontColor=light-dark(#000000,#000000);" value="Payment Service System Design" vertex="1">
           <mxGeometry height="40" width="700" x="40" y="20" as="geometry" />
-        </mxCell>
-        <mxCell id="subtitle" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontColor=light-dark(#555555,#555555);" value="Marketly owns orders &amp;amp; stock · Payment Service owns money · Paystack is the only payment gateway" vertex="1">
-          <mxGeometry height="30" width="900" x="40" y="55" as="geometry" />
         </mxCell>
         <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(transparent,#F7F7F7);strokeColor=#999999;dashed=1;fontSize=16;fontStyle=1;fontColor=light-dark(#000000,#000000);arcSize=3;strokeWidth=1.5;" value="Legend" vertex="1">
           <mxGeometry height="329" width="280" x="40" y="100" as="geometry" />
