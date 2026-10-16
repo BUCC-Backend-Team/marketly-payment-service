@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
+import { enqueueSucceededCallback } from "../callbacks/index.js";
 import { pool } from "../db/client.js";
 
 type ChargeData = {
@@ -65,33 +65,11 @@ export async function handlePaystackWebhook(req: Request, res: Response) {
 
     const payment = updated.rows[0];
     if (payment) {
-      const callbackId = randomUUID();
       await client.query(
         `UPDATE webhook_events SET payment_id = $2 WHERE dedup_key = $1`,
         [dedupKey, payment.id],
       );
-      await client.query(
-        `INSERT INTO callback_outbox (id, payment_id, type, payload)
-         VALUES ($1, $2, 'payment.succeeded', $3::jsonb)`,
-        [
-          callbackId,
-          payment.id,
-          JSON.stringify({
-            id: callbackId,
-            type: "payment.succeeded",
-            createdAt: new Date().toISOString(),
-            data: {
-              paymentId: payment.id,
-              orderId: payment.order_id,
-              status: "succeeded",
-              amount: payment.amount,
-              amountRefunded: payment.amount_refunded,
-              currency: payment.currency,
-              late: payment.paid_late,
-            },
-          }),
-        ],
-      );
+      await enqueueSucceededCallback(client, payment);
     }
 
     await client.query("COMMIT");
