@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { startCallbackWorker } from "./callbacks/index.js";
+import { startExpiryJob } from "./jobs/expiry.js";
 import { createPayment } from "./payments/index.js";
 import { handlePaystackWebhook } from "./webhooks/index.js";
 
@@ -19,4 +20,5 @@ app.post("/webhooks/paystack", handlePaystackWebhook);
 app.listen(port, () => {
   console.log(`Listening on ${port}`);
   startCallbackWorker();
+  startExpiryJob();
 });
