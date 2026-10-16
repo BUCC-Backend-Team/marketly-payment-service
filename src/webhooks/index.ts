@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { enqueueSucceededCallback } from "../callbacks/index.js";
 import { pool } from "../db/client.js";
+import { handleRefundWebhook } from "../refunds/index.js";
 
 type ChargeData = {
   id?: number | string;
@@ -10,6 +11,11 @@ type ChargeData = {
 };
 
 export async function handlePaystackWebhook(req: Request, res: Response) {
+  if (req.body?.event === "refund.processed" || req.body?.event === "refund.failed") {
+    await handleRefundWebhook(req, res);
+    return;
+  }
+
   const data = req.body?.data as ChargeData | undefined;
   if (req.body?.event !== "charge.success" || data?.id == null || !data.reference) {
     res.status(200).json({ received: true });
