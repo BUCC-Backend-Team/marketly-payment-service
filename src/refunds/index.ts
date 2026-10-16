@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import type { PoolClient } from "pg";
-import { pool, query } from "../db/client.js";
-import { paymentProvider } from "../providers/index.js";
+import { pool } from "../db/client.js";
+import { paymentProvider, PaystackError } from "../providers/index.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -23,71 +23,114 @@ export async function createRefund(req: Request, res: Response) {
   }
 
   const requestHash = createHash("sha256").update(JSON.stringify(req.body ?? {})).digest("hex");
+  const lockKey = `refund_create:${idempotencyKey}`;
   const client = await pool.connect();
+  let locked = false;
 
   try {
+    await client.query(`SELECT pg_advisory_lock(hashtextextended($1, 0))`, [lockKey]);
+    locked = true;
     await client.query("BEGIN");
 
     const existing = await client.query<{
       request_hash: string;
       response_status: number;
       response_body: unknown;
+      refund_id: string | null;
     }>(
-      `SELECT request_hash, response_status, response_body
+      `SELECT request_hash, response_status, response_body, refund_id
        FROM idempotency_keys
-       WHERE scope = 'refund_create' AND key = $1
-       FOR UPDATE`,
+       WHERE scope = 'refund_create' AND key = $1`,
       [idempotencyKey],
     );
     const saved = existing.rows[0];
+    let refundId: string;
+    let reference: string;
+    let amount: number;
+    let responseBody: { refundId: string; amount: number; status: "pending" };
+
     if (saved) {
-      await client.query("COMMIT");
       if (saved.request_hash !== requestHash) {
+        await client.query("COMMIT");
         res.status(422).json({ error: "Idempotency key was already used with a different request" });
         return;
       }
-      res.set("Idempotent-Replayed", "true").status(saved.response_status).json(saved.response_body);
-      return;
-    }
-
-    const reserved = await reserveRefund(client, paymentId, requested, res);
-    if (!reserved) {
-      await client.query("ROLLBACK");
-      return;
-    }
-
-    const responseBody = {
-      refundId: reserved.refundId,
-      amount: reserved.amount,
-      status: "pending",
-    };
-    await client.query(
-      `INSERT INTO idempotency_keys (key, scope, request_hash, response_status, response_body, payment_id, refund_id)
-       VALUES ($1, 'refund_create', $2, 202, $3::jsonb, $4, $5)`,
-      [idempotencyKey, requestHash, JSON.stringify(responseBody), reserved.paymentId, reserved.refundId],
-    );
-    await client.query("COMMIT");
-
-    try {
-      const paystackRefundId = await paymentProvider.refund(reserved.reference, reserved.amount);
-      await query(
-        `UPDATE refunds SET paystack_refund_id = $2, updated_at = now() WHERE id = $1`,
-        [reserved.refundId, paystackRefundId],
+      if (saved.response_status === 202) {
+        await client.query("COMMIT");
+        res.set("Idempotent-Replayed", "true").status(202).json(saved.response_body);
+        return;
+      }
+      if (!saved.refund_id) throw new Error("Refund idempotency key has no refund");
+      const refund = await client.query<{ amount: number; paystack_reference: string }>(
+        `SELECT r.amount, p.paystack_reference
+         FROM refunds r
+         JOIN payments p ON p.id = r.payment_id
+         WHERE r.id = $1`,
+        [saved.refund_id],
       );
-      res.status(202).json(responseBody);
+      const row = refund.rows[0];
+      if (!row) throw new Error("Refund idempotency key has no refund");
+      refundId = saved.refund_id;
+      reference = row.paystack_reference;
+      amount = row.amount;
+      responseBody = saved.response_body as { refundId: string; amount: number; status: "pending" };
+      await client.query("COMMIT");
+    } else {
+      const reserved = await reserveRefund(client, paymentId, requested, res);
+      if (!reserved) {
+        await client.query("ROLLBACK");
+        return;
+      }
+      refundId = reserved.refundId;
+      reference = reserved.reference;
+      amount = reserved.amount;
+      responseBody = { refundId, amount, status: "pending" };
+      await client.query(
+        `INSERT INTO idempotency_keys (key, scope, request_hash, response_status, response_body, payment_id, refund_id)
+         VALUES ($1, 'refund_create', $2, 0, $3::jsonb, $4, $5)`,
+        [idempotencyKey, requestHash, JSON.stringify(responseBody), reserved.paymentId, refundId],
+      );
+      await client.query("COMMIT");
+    }
+
+    let paystackRefundId: string;
+    try {
+      paystackRefundId = await paymentProvider.refund(reference, amount);
     } catch (err) {
-      await query(`DELETE FROM idempotency_keys WHERE scope = 'refund_create' AND key = $1`, [
-        idempotencyKey,
-      ]);
-      await query(`DELETE FROM refunds WHERE id = $1`, [reserved.refundId]);
+      if (err instanceof PaystackError && err.status < 500) {
+        await client.query("BEGIN");
+        await client.query(`DELETE FROM idempotency_keys WHERE scope = 'refund_create' AND key = $1`, [
+          idempotencyKey,
+        ]);
+        await client.query(`DELETE FROM refunds WHERE id = $1`, [refundId]);
+        await client.query("COMMIT");
+      }
       console.error(err);
       res.status(502).json({ error: "Could not start refund" });
+      return;
     }
+
+    await client.query("BEGIN");
+    await client.query(
+      `UPDATE refunds SET paystack_refund_id = $2, updated_at = now() WHERE id = $1`,
+      [refundId, paystackRefundId],
+    );
+    await client.query(
+      `UPDATE idempotency_keys
+       SET response_status = 202, response_body = $2::jsonb
+       WHERE scope = 'refund_create' AND key = $1`,
+      [idempotencyKey, JSON.stringify(responseBody)],
+    );
+    await client.query("COMMIT");
+    res.status(202).json(responseBody);
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     console.error(err);
     if (!res.headersSent) res.status(500).json({ error: "Could not create refund" });
   } finally {
+    if (locked) {
+      await client.query(`SELECT pg_advisory_unlock(hashtextextended($1, 0))`, [lockKey]).catch(() => {});
+    }
     client.release();
   }
 }

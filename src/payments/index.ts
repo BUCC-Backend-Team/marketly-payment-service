@@ -27,43 +27,65 @@ export async function createPayment(req: Request, res: Response) {
   }
 
   const requestHash = createHash("sha256").update(JSON.stringify(req.body ?? {})).digest("hex");
+  const lockKey = `payment_create:${idempotencyKey}`;
   const client = await pool.connect();
-  let inserted = false;
+  let locked = false;
+  let paymentId: string | undefined;
 
   try {
+    await client.query(`SELECT pg_advisory_lock(hashtextextended($1, 0))`, [lockKey]);
+    locked = true;
     await client.query("BEGIN");
-    await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, [
-      `payment_create:${idempotencyKey}`,
-    ]);
 
     const existing = await client.query<{
       request_hash: string;
       response_status: number;
       response_body: unknown;
+      payment_id: string | null;
     }>(
-      `SELECT request_hash, response_status, response_body
+      `SELECT request_hash, response_status, response_body, payment_id
        FROM idempotency_keys
        WHERE scope = 'payment_create' AND key = $1`,
       [idempotencyKey],
     );
     const saved = existing.rows[0];
     if (saved) {
-      await client.query("COMMIT");
       if (saved.request_hash !== requestHash) {
+        await client.query("COMMIT");
         res.status(422).json({ error: "Idempotency key was already used with a different request" });
         return;
       }
-      res.set("Idempotent-Replayed", "true").status(saved.response_status).json(saved.response_body);
-      return;
+      if (saved.response_status === 201) {
+        await client.query("COMMIT");
+        res.set("Idempotent-Replayed", "true").status(201).json(saved.response_body);
+        return;
+      }
+      if (!saved.payment_id) throw new Error("Payment idempotency key has no payment");
+      paymentId = saved.payment_id;
+      await client.query("COMMIT");
+    } else {
+      paymentId = randomUUID();
+      try {
+        await client.query(
+          `INSERT INTO payments (id, order_id, amount, customer_email, return_url, paystack_reference)
+           VALUES ($1::uuid, $2, $3, $4, $5, $1::text)`,
+          [paymentId, orderId, amount, customerEmail, returnUrl],
+        );
+        await client.query(
+          `INSERT INTO idempotency_keys (key, scope, request_hash, response_status, response_body, payment_id)
+           VALUES ($1, 'payment_create', $2, 0, $3::jsonb, $4)`,
+          [idempotencyKey, requestHash, JSON.stringify({ paymentId }), paymentId],
+        );
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK");
+        if (isUniqueViolation(err)) {
+          res.status(409).json({ error: "payment_exists" });
+          return;
+        }
+        throw err;
+      }
     }
-
-    const paymentId = randomUUID();
-    await client.query(
-      `INSERT INTO payments (id, order_id, amount, customer_email, return_url, paystack_reference)
-       VALUES ($1::uuid, $2, $3, $4, $5, $1::text)`,
-      [paymentId, orderId, amount, customerEmail, returnUrl],
-    );
-    inserted = true;
 
     const checkoutUrl = await paymentProvider.initialize({
       email: customerEmail,
@@ -71,11 +93,6 @@ export async function createPayment(req: Request, res: Response) {
       reference: paymentId,
       callbackUrl: returnUrl,
     });
-    await client.query(
-      `UPDATE payments SET checkout_url = $2, updated_at = now() WHERE id = $1`,
-      [paymentId, checkoutUrl],
-    );
-
     const responseBody = {
       paymentId,
       orderId,
@@ -84,26 +101,31 @@ export async function createPayment(req: Request, res: Response) {
       currency: "NGN",
       checkoutUrl,
     };
+    await client.query("BEGIN");
     await client.query(
-      `INSERT INTO idempotency_keys (key, scope, request_hash, response_status, response_body, payment_id)
-       VALUES ($1, 'payment_create', $2, 201, $3::jsonb, $4)`,
-      [idempotencyKey, requestHash, JSON.stringify(responseBody), paymentId],
+      `UPDATE payments SET checkout_url = $2, updated_at = now() WHERE id = $1`,
+      [paymentId, checkoutUrl],
+    );
+    await client.query(
+      `UPDATE idempotency_keys
+       SET response_status = 201, response_body = $2::jsonb
+       WHERE scope = 'payment_create' AND key = $1`,
+      [idempotencyKey, JSON.stringify(responseBody)],
     );
     await client.query("COMMIT");
     res.status(201).json(responseBody);
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
-    if (isUniqueViolation(err)) {
-      res.status(409).json({ error: "payment_exists" });
-      return;
-    }
     console.error(err);
     if (!res.headersSent) {
-      res.status(inserted ? 502 : 500).json({
-        error: inserted ? "Could not start checkout" : "Could not create payment",
+      res.status(paymentId ? 502 : 500).json({
+        error: paymentId ? "Could not start checkout" : "Could not create payment",
       });
     }
   } finally {
+    if (locked) {
+      await client.query(`SELECT pg_advisory_unlock(hashtextextended($1, 0))`, [lockKey]).catch(() => {});
+    }
     client.release();
   }
 }
