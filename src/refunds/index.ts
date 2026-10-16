@@ -7,16 +7,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function createRefund(req: Request, res: Response) {
   const paymentId = req.params.id;
-  const amount = req.body?.amount;
+  const requested = req.body?.amount;
   const idempotencyKey = req.get("Idempotency-Key");
 
   if (typeof paymentId !== "string" || !UUID.test(paymentId)) {
     res.status(404).json({ error: "Payment not found" });
     return;
   }
-  if (!idempotencyKey || !Number.isInteger(amount) || amount <= 0) {
+  if (!idempotencyKey || (requested !== undefined && (!Number.isInteger(requested) || requested <= 0))) {
     res.status(400).json({
-      error: "Idempotency-Key header and amount (integer kobo) are required",
+      error: "Idempotency-Key is required, and amount must be a positive integer in kobo when provided",
     });
     return;
   }
@@ -49,32 +49,31 @@ export async function createRefund(req: Request, res: Response) {
       return;
     }
 
-    const reserved = await reserveRefund(client, paymentId, amount, res);
+    const reserved = await reserveRefund(client, paymentId, requested, res);
     if (!reserved) {
       await client.query("ROLLBACK");
       return;
     }
 
     const responseBody = {
-      id: reserved.refundId,
-      payment_id: reserved.paymentId,
-      amount,
+      refundId: reserved.refundId,
+      amount: reserved.amount,
       status: "pending",
     };
     await client.query(
       `INSERT INTO idempotency_keys (key, scope, request_hash, response_status, response_body, payment_id, refund_id)
-       VALUES ($1, 'refund_create', $2, 201, $3::jsonb, $4, $5)`,
+       VALUES ($1, 'refund_create', $2, 202, $3::jsonb, $4, $5)`,
       [idempotencyKey, requestHash, JSON.stringify(responseBody), reserved.paymentId, reserved.refundId],
     );
     await client.query("COMMIT");
 
     try {
-      const paystackRefundId = await createPaystackRefund(reserved.reference, amount);
+      const paystackRefundId = await createPaystackRefund(reserved.reference, reserved.amount);
       await query(
         `UPDATE refunds SET paystack_refund_id = $2, updated_at = now() WHERE id = $1`,
         [reserved.refundId, paystackRefundId],
       );
-      res.status(201).json(responseBody);
+      res.status(202).json(responseBody);
     } catch (err) {
       await query(`DELETE FROM idempotency_keys WHERE scope = 'refund_create' AND key = $1`, [
         idempotencyKey,
@@ -180,7 +179,12 @@ export async function handleRefundWebhook(req: Request, res: Response) {
   }
 }
 
-async function reserveRefund(client: PoolClient, paymentId: string, amount: number, res: Response) {
+async function reserveRefund(
+  client: PoolClient,
+  paymentId: string,
+  amount: number | undefined,
+  res: Response,
+) {
   const payment = await client.query<{
     id: string;
     status: string;
@@ -198,7 +202,7 @@ async function reserveRefund(client: PoolClient, paymentId: string, amount: numb
     return null;
   }
   if (row.status !== "succeeded" && row.status !== "partially_refunded") {
-    res.status(409).json({ error: "Payment cannot be refunded" });
+    res.status(409).json({ error: "not_refundable" });
     return null;
   }
 
@@ -208,8 +212,9 @@ async function reserveRefund(client: PoolClient, paymentId: string, amount: numb
     [row.id],
   );
   const available = row.amount - row.amount_refunded - pending.rows[0].reserved;
-  if (amount > available) {
-    res.status(409).json({ error: "Refund amount exceeds the remaining balance" });
+  const refundAmount = amount ?? available;
+  if (refundAmount <= 0 || refundAmount > available) {
+    res.status(409).json({ error: "not_refundable" });
     return null;
   }
 
@@ -217,9 +222,9 @@ async function reserveRefund(client: PoolClient, paymentId: string, amount: numb
   await client.query(`INSERT INTO refunds (id, payment_id, amount) VALUES ($1, $2, $3)`, [
     refundId,
     row.id,
-    amount,
+    refundAmount,
   ]);
-  return { refundId, paymentId: row.id, reference: row.paystack_reference };
+  return { refundId, paymentId: row.id, reference: row.paystack_reference, amount: refundAmount };
 }
 
 async function createPaystackRefund(transaction: string, amount: number) {
