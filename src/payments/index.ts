@@ -1,80 +1,114 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
-import { query } from "../db/client.js";
+import { pool } from "../db/client.js";
 
 export async function createPayment(req: Request, res: Response) {
-  const { order_id, amount, customer_email, return_url } = req.body ?? {};
+  const { orderId, amount, currency, customerEmail, returnUrl } = req.body ?? {};
+  const idempotencyKey = req.get("Idempotency-Key");
 
   if (
-    typeof order_id !== "string" ||
-    !order_id ||
-    typeof customer_email !== "string" ||
-    !customer_email ||
-    typeof return_url !== "string" ||
-    !return_url ||
+    !idempotencyKey ||
+    typeof orderId !== "string" ||
+    !orderId ||
+    typeof customerEmail !== "string" ||
+    !customerEmail ||
+    typeof returnUrl !== "string" ||
+    !returnUrl ||
+    currency !== "NGN" ||
     !Number.isInteger(amount) ||
     amount <= 0
   ) {
     res.status(400).json({
       error:
-        "order_id, amount (integer kobo), customer_email, and return_url are required",
+        "orderId, amount (integer kobo), currency NGN, customerEmail, returnUrl, and Idempotency-Key are required",
     });
     return;
   }
 
-  const id = randomUUID();
+  const requestHash = createHash("sha256").update(JSON.stringify(req.body ?? {})).digest("hex");
+  const client = await pool.connect();
+  let inserted = false;
 
   try {
-    await query(
+    await client.query("BEGIN");
+    await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, [
+      `payment_create:${idempotencyKey}`,
+    ]);
+
+    const existing = await client.query<{
+      request_hash: string;
+      response_status: number;
+      response_body: unknown;
+    }>(
+      `SELECT request_hash, response_status, response_body
+       FROM idempotency_keys
+       WHERE scope = 'payment_create' AND key = $1`,
+      [idempotencyKey],
+    );
+    const saved = existing.rows[0];
+    if (saved) {
+      await client.query("COMMIT");
+      if (saved.request_hash !== requestHash) {
+        res.status(422).json({ error: "Idempotency key was already used with a different request" });
+        return;
+      }
+      res.set("Idempotent-Replayed", "true").status(saved.response_status).json(saved.response_body);
+      return;
+    }
+
+    const paymentId = randomUUID();
+    await client.query(
       `INSERT INTO payments (id, order_id, amount, customer_email, return_url, paystack_reference)
        VALUES ($1::uuid, $2, $3, $4, $5, $1::text)`,
-      [id, order_id, amount, customer_email, return_url],
+      [paymentId, orderId, amount, customerEmail, returnUrl],
     );
+    inserted = true;
+
+    const checkoutUrl = await startCheckout({
+      email: customerEmail,
+      amount,
+      reference: paymentId,
+      callbackUrl: returnUrl,
+    });
+    await client.query(
+      `UPDATE payments SET checkout_url = $2, updated_at = now() WHERE id = $1`,
+      [paymentId, checkoutUrl],
+    );
+
+    const responseBody = {
+      paymentId,
+      orderId,
+      status: "pending",
+      amount,
+      currency: "NGN",
+      checkoutUrl,
+    };
+    await client.query(
+      `INSERT INTO idempotency_keys (key, scope, request_hash, response_status, response_body, payment_id)
+       VALUES ($1, 'payment_create', $2, 201, $3::jsonb, $4)`,
+      [idempotencyKey, requestHash, JSON.stringify(responseBody), paymentId],
+    );
+    await client.query("COMMIT");
+    res.status(201).json(responseBody);
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     if (isUniqueViolation(err)) {
-      res.status(409).json({ error: "An active payment already exists for this order" });
+      res.status(409).json({ error: "payment_exists" });
       return;
     }
     console.error(err);
-    res.status(500).json({ error: "Could not create payment" });
-    return;
-  }
-
-  try {
-    const checkoutUrl = await startCheckout({
-      email: customer_email,
-      amount,
-      reference: id,
-      callbackUrl: return_url,
-    });
-
-    await query(
-      `UPDATE payments SET checkout_url = $2, updated_at = now() WHERE id = $1`,
-      [id, checkoutUrl],
-    );
-
-    res.status(201).json({
-      id,
-      order_id,
-      amount,
-      currency: "NGN",
-      status: "pending",
-      checkout_url: checkoutUrl,
-    });
-  } catch (err) {
-    await query(`DELETE FROM payments WHERE id = $1`, [id]);
-    console.error(err);
-    res.status(502).json({ error: "Could not start checkout" });
+    if (!res.headersSent) {
+      res.status(inserted ? 502 : 500).json({
+        error: inserted ? "Could not start checkout" : "Could not create payment",
+      });
+    }
+  } finally {
+    client.release();
   }
 }
 
 function isUniqueViolation(err: unknown) {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    err.code === "23505"
-  );
+  return typeof err === "object" && err !== null && "code" in err && err.code === "23505";
 }
 
 async function startCheckout(input: {
