@@ -147,3 +147,44 @@ async function startCheckout(input: {
 
   return body.data.authorization_url;
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getPayment(req: Request, res: Response) {
+  const id = req.params.id;
+  if (typeof id !== "string" || !UUID.test(id)) {
+    res.status(404).json({ error: "Payment not found" });
+    return;
+  }
+
+  const result = await pool.query<{
+    id: string;
+    order_id: string;
+    status: string;
+    channel: string | null;
+    amount: number;
+    amount_refunded: number;
+    currency: string;
+    checkout_url: string | null;
+  }>(
+    `SELECT id, order_id, status, channel, amount, amount_refunded, currency, checkout_url
+     FROM payments WHERE id = $1`,
+    [id],
+  );
+  const row = result.rows[0];
+  if (!row) {
+    res.status(404).json({ error: "Payment not found" });
+    return;
+  }
+
+  res.status(200).json({
+    paymentId: row.id,
+    orderId: row.order_id,
+    status: row.status,
+    channel: row.channel,
+    amount: row.amount,
+    amountRefunded: row.amount_refunded,
+    currency: row.currency,
+    checkoutUrl: row.checkout_url,
+  });
+}

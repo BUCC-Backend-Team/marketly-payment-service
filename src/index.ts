@@ -3,7 +3,7 @@ import type { Request } from "express";
 import express from "express";
 import { startCallbackWorker } from "./callbacks/index.js";
 import { startExpiryJob } from "./jobs/expiry.js";
-import { createPayment } from "./payments/index.js";
+import { createPayment, getPayment } from "./payments/index.js";
 import { createRefund } from "./refunds/index.js";
 import { handlePaystackWebhook } from "./webhooks/index.js";
 
@@ -34,6 +34,7 @@ app.use((req, res, next) => {
 });
 
 app.post("/payments", createPayment);
+app.get("/payments/:id", getPayment);
 app.post("/payments/:id/refunds", createRefund);
 
 app.listen(port, () => {
