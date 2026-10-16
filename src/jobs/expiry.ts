@@ -3,6 +3,7 @@ import type { PoolClient } from "pg";
 import { enqueueSucceededCallback } from "../callbacks/index.js";
 import { config } from "../config/index.js";
 import { pool } from "../db/client.js";
+import { paymentProvider, type VerifiedTransaction } from "../providers/index.js";
 
 type DuePayment = {
   id: string;
@@ -11,15 +12,6 @@ type DuePayment = {
   amount_refunded: number;
   currency: string;
   paystack_reference: string;
-};
-
-type VerifiedTransaction = {
-  id?: number | string;
-  status?: string;
-  amount?: number;
-  currency?: string;
-  channel?: string;
-  paid_at?: string;
 };
 
 export function startExpiryJob() {
@@ -52,8 +44,13 @@ async function expirePayments(timeoutSeconds: number) {
 }
 
 async function reconcile(payment: DuePayment) {
-  const verified = await verifyTransaction(payment.paystack_reference);
-  if (verified === undefined) return;
+  let verified: VerifiedTransaction | null;
+  try {
+    verified = await paymentProvider.verify(payment.paystack_reference);
+  } catch (err) {
+    console.error(err);
+    return;
+  }
 
   const paid =
     verified?.status === "success" &&
@@ -157,23 +154,3 @@ async function enqueueExpiredCallback(
   );
 }
 
-async function verifyTransaction(reference: string): Promise<VerifiedTransaction | null | undefined> {
-  let response: Response;
-  try {
-    response = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      { headers: { Authorization: `Bearer ${config.paystackSecretKey}` } },
-    );
-  } catch (err) {
-    console.error(err);
-    return undefined;
-  }
-
-  if (response.status >= 500) {
-    console.error(`Paystack verify failed (${response.status})`);
-    return undefined;
-  }
-
-  const body = (await response.json()) as { data?: VerifiedTransaction };
-  return body.data ?? null;
-}

@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import type { PoolClient } from "pg";
-import { config } from "../config/index.js";
 import { pool, query } from "../db/client.js";
+import { paymentProvider } from "../providers/index.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -69,7 +69,7 @@ export async function createRefund(req: Request, res: Response) {
     await client.query("COMMIT");
 
     try {
-      const paystackRefundId = await createPaystackRefund(reserved.reference, reserved.amount);
+      const paystackRefundId = await paymentProvider.refund(reserved.reference, reserved.amount);
       await query(
         `UPDATE refunds SET paystack_refund_id = $2, updated_at = now() WHERE id = $1`,
         [reserved.refundId, paystackRefundId],
@@ -226,26 +226,6 @@ async function reserveRefund(
     refundAmount,
   ]);
   return { refundId, paymentId: row.id, reference: row.paystack_reference, amount: refundAmount };
-}
-
-async function createPaystackRefund(transaction: string, amount: number) {
-  const response = await fetch("https://api.paystack.co/refund", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.paystackSecretKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ transaction, amount }),
-  });
-  const body = (await response.json()) as {
-    status?: boolean;
-    message?: string;
-    data?: { id?: number | string };
-  };
-  if (!response.ok || !body.status || body.data?.id == null) {
-    throw new Error(body.message ?? "Paystack refund failed");
-  }
-  return String(body.data.id);
 }
 
 type PaymentRow = {

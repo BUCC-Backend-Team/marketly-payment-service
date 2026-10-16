@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { enqueueSucceededCallback } from "../callbacks/index.js";
 import { config } from "../config/index.js";
 import { pool } from "../db/client.js";
+import { paymentProvider, type VerifiedTransaction } from "../providers/index.js";
 import { handleRefundWebhook } from "../refunds/index.js";
 
 type ChargeData = {
@@ -37,7 +38,9 @@ export async function handlePaystackWebhook(req: Request, res: Response) {
   let verified: VerifiedTransaction | undefined;
   if (row && (row.status === "pending" || row.status === "expired")) {
     try {
-      verified = await verifyTransaction(data.reference);
+      const result = await paymentProvider.verify(data.reference);
+      if (!result) throw new Error("Paystack verify failed");
+      verified = result;
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Could not verify transaction" });
@@ -131,16 +134,6 @@ function hasValidSignature(req: Request) {
   return timingSafeEqual(actual, digest);
 }
 
-type VerifiedTransaction = {
-  id?: number | string;
-  status?: string;
-  reference?: string;
-  amount?: number;
-  currency?: string;
-  channel?: string;
-  paid_at?: string;
-};
-
 function transactionMatches(
   payment: { amount: number; currency: string },
   reference: string,
@@ -156,14 +149,3 @@ function transactionMatches(
   );
 }
 
-async function verifyTransaction(reference: string) {
-  const response = await fetch(
-    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${config.paystackSecretKey}` } },
-  );
-  const body = (await response.json()) as { status?: boolean; message?: string; data?: VerifiedTransaction };
-  if (!response.ok || !body.status || !body.data) {
-    throw new Error(body.message ?? "Paystack verify failed");
-  }
-  return body.data;
-}

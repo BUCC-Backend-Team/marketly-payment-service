@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
-import { config } from "../config/index.js";
 import { pool } from "../db/client.js";
+import { paymentProvider } from "../providers/index.js";
 
 export async function createPayment(req: Request, res: Response) {
   const { orderId, amount, currency, customerEmail, returnUrl } = req.body ?? {};
@@ -65,7 +65,7 @@ export async function createPayment(req: Request, res: Response) {
     );
     inserted = true;
 
-    const checkoutUrl = await startCheckout({
+    const checkoutUrl = await paymentProvider.initialize({
       email: customerEmail,
       amount,
       reference: paymentId,
@@ -110,40 +110,6 @@ export async function createPayment(req: Request, res: Response) {
 
 function isUniqueViolation(err: unknown) {
   return typeof err === "object" && err !== null && "code" in err && err.code === "23505";
-}
-
-async function startCheckout(input: {
-  email: string;
-  amount: number;
-  reference: string;
-  callbackUrl: string;
-}) {
-  const response = await fetch("https://api.paystack.co/transaction/initialize", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.paystackSecretKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email: input.email,
-      amount: input.amount,
-      reference: input.reference,
-      callback_url: input.callbackUrl,
-      currency: "NGN",
-    }),
-  });
-
-  const body = (await response.json()) as {
-    status?: boolean;
-    message?: string;
-    data?: { authorization_url?: string };
-  };
-
-  if (!response.ok || !body.status || !body.data?.authorization_url) {
-    throw new Error(body.message ?? "Paystack request failed");
-  }
-
-  return body.data.authorization_url;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
