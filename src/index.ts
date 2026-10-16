@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { createPayment } from "./payments.js";
+import { handlePaystackWebhook } from "./webhooks.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -12,6 +13,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.post("/payments", createPayment);
+app.post("/webhooks/paystack", handlePaystackWebhook);
 
 app.listen(port, () => {
   console.log(`Listening on ${port}`);
