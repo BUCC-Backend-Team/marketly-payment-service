@@ -1,4 +1,5 @@
 import "dotenv/config";
+import type { Request } from "express";
 import express from "express";
 import { startCallbackWorker } from "./callbacks/index.js";
 import { startExpiryJob } from "./jobs/expiry.js";
@@ -9,7 +10,13 @@ import { handlePaystackWebhook } from "./webhooks/index.js";
 const app = express();
 const port = Number(process.env.PORT) || 4000;
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as Request & { rawBody?: Buffer }).rawBody = buf;
+    },
+  }),
+);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
