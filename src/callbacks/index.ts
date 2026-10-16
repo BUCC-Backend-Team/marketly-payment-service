@@ -1,14 +1,15 @@
 import { createHmac, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
+import { config } from "../config/index.js";
 import { pool } from "../db/client.js";
 
 const MAX_ATTEMPTS = 6;
 
 function marketlySignature(body: string) {
-  const secret = process.env.CALLBACK_SECRET;
-  if (!secret) throw new Error("CALLBACK_SECRET is not set");
   const timestamp = Math.floor(Date.now() / 1000);
-  const digest = createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+  const digest = createHmac("sha256", config.callbackSecret)
+    .update(`${timestamp}.${body}`)
+    .digest("hex");
   return `t=${timestamp},v1=${digest}`;
 }
 
@@ -48,17 +49,11 @@ export async function enqueueSucceededCallback(client: PoolClient, payment: Succ
 }
 
 export function startCallbackWorker() {
-  const url = process.env.CALLBACK_URL;
-  if (!url || !process.env.CALLBACK_SECRET) {
-    console.error("CALLBACK_URL and CALLBACK_SECRET are required");
-    return;
-  }
-
   let running = false;
   setInterval(() => {
     if (running) return;
     running = true;
-    deliverDue(url)
+    deliverDue(config.callbackUrl)
       .catch((err) => console.error(err))
       .finally(() => {
         running = false;

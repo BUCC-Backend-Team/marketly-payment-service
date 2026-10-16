@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import { enqueueSucceededCallback } from "../callbacks/index.js";
+import { config } from "../config/index.js";
 import { pool } from "../db/client.js";
 import { handleRefundWebhook } from "../refunds/index.js";
 
@@ -119,12 +120,11 @@ export async function handlePaystackWebhook(req: Request, res: Response) {
 }
 
 function hasValidSignature(req: Request) {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
   const signature = req.get("x-paystack-signature");
   const raw = (req as Request & { rawBody?: Buffer }).rawBody;
-  if (!secret || !signature || !raw) return false;
+  if (!signature || !raw) return false;
 
-  const expected = createHmac("sha512", secret).update(raw).digest("hex");
+  const expected = createHmac("sha512", config.paystackSecretKey).update(raw).digest("hex");
   const actual = Buffer.from(signature);
   const digest = Buffer.from(expected);
   if (actual.length !== digest.length) return false;
@@ -157,12 +157,9 @@ function transactionMatches(
 }
 
 async function verifyTransaction(reference: string) {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not set");
-
   const response = await fetch(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${secret}` } },
+    { headers: { Authorization: `Bearer ${config.paystackSecretKey}` } },
   );
   const body = (await response.json()) as { status?: boolean; message?: string; data?: VerifiedTransaction };
   if (!response.ok || !body.status || !body.data) {

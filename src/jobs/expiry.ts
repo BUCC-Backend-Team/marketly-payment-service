@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { enqueueSucceededCallback } from "../callbacks/index.js";
+import { config } from "../config/index.js";
 import { pool } from "../db/client.js";
 
 type DuePayment = {
@@ -22,17 +23,11 @@ type VerifiedTransaction = {
 };
 
 export function startExpiryJob() {
-  const timeoutSeconds = Number(process.env.PAYMENT_TIMEOUT_SECONDS);
-  if (!Number.isInteger(timeoutSeconds) || timeoutSeconds <= 0) {
-    console.error("PAYMENT_TIMEOUT_SECONDS is not set");
-    return;
-  }
-
   let running = false;
   setInterval(() => {
     if (running) return;
     running = true;
-    expirePayments(timeoutSeconds)
+    expirePayments(config.paymentTimeoutSeconds)
       .catch((err) => console.error(err))
       .finally(() => {
         running = false;
@@ -163,14 +158,11 @@ async function enqueueExpiredCallback(
 }
 
 async function verifyTransaction(reference: string): Promise<VerifiedTransaction | null | undefined> {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not set");
-
   let response: Response;
   try {
     response = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      { headers: { Authorization: `Bearer ${secret}` } },
+      { headers: { Authorization: `Bearer ${config.paystackSecretKey}` } },
     );
   } catch (err) {
     console.error(err);

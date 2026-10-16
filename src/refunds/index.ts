@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import type { PoolClient } from "pg";
+import { config } from "../config/index.js";
 import { pool, query } from "../db/client.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -228,13 +229,10 @@ async function reserveRefund(
 }
 
 async function createPaystackRefund(transaction: string, amount: number) {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not set");
-
   const response = await fetch("https://api.paystack.co/refund", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${secret}`,
+      Authorization: `Bearer ${config.paystackSecretKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ transaction, amount }),

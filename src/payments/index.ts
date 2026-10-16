@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
+import { config } from "../config/index.js";
 import { pool } from "../db/client.js";
 
 export async function createPayment(req: Request, res: Response) {
@@ -117,13 +118,10 @@ async function startCheckout(input: {
   reference: string;
   callbackUrl: string;
 }) {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not set");
-
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${secret}`,
+      Authorization: `Bearer ${config.paystackSecretKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
