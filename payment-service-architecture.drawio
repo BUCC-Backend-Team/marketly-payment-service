@@ -1,0 +1,228 @@
+<mxfile host="app.diagrams.net" agent="Composer">
+  <diagram id="paymentService01" name="Payment Service Architecture">
+    <mxGraphModel dx="821" dy="629" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1500" background="light-dark(#FFFFFF,#FFFFFF)" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;fontColor=light-dark(#000000,#000000);" value="Payment Service — System Design (Phase 3)" vertex="1">
+          <mxGeometry height="40" width="700" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontColor=light-dark(#555555,#555555);" value="Marketly owns orders &amp;amp; stock · Payment Service owns money · Paystack is the only payment gateway" vertex="1">
+          <mxGeometry height="30" width="900" x="40" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(transparent,#F7F7F7);strokeColor=#999999;dashed=1;fontSize=16;fontStyle=1;fontColor=light-dark(#000000,#000000);arcSize=3;strokeWidth=1.5;" value="Legend" vertex="1">
+          <mxGeometry height="329" width="280" x="40" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeColor=light-dark(#000000,#000000);strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="160" as="sourcePoint" />
+            <mxPoint x="130" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg1t" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=light-dark(#000000,#000000);" value="API / request flow" vertex="1">
+          <mxGeometry height="30" width="150" x="140" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="200" as="sourcePoint" />
+            <mxPoint x="130" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg2t" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=light-dark(#000000,#000000);" value="Async / background" vertex="1">
+          <mxGeometry height="30" width="150" x="140" y="185" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeColor=#82b366;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="240" as="sourcePoint" />
+            <mxPoint x="130" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg3t" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=light-dark(#000000,#000000);" value="Webhook / callback" vertex="1">
+          <mxGeometry height="30" width="150" x="140" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#DAE8FC,#E5E6ED);strokeColor=#6c8ebf;fontSize=11;arcSize=8;" value="" vertex="1">
+          <mxGeometry height="28" width="55" x="65" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4t" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=light-dark(#000000,#000000);" value="External system" vertex="1">
+          <mxGeometry height="30" width="150" x="140" y="268" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#FFF2CC,#FFF9CC);strokeColor=#d6b656;fontSize=11;arcSize=8;" value="" vertex="1">
+          <mxGeometry height="28" width="55" x="65" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5t" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=light-dark(#000000,#000000);" value="Service module" vertex="1">
+          <mxGeometry height="30" width="150" x="140" y="308" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#FFE6CC,#FFF3E0);strokeColor=#d79b00;fontSize=11;arcSize=8;" value="" vertex="1">
+          <mxGeometry height="28" width="55" x="65" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6t" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=light-dark(#000000,#000000);" value="Security / auth step" vertex="1">
+          <mxGeometry height="30" width="150" x="140" y="348" as="geometry" />
+        </mxCell>
+        <mxCell id="lg7" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=none;strokeColor=#4c7093;fontSize=11;" value="" vertex="1">
+          <mxGeometry height="36" width="55" x="65" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="lg7t" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=light-dark(#000000,#000000);" value="Persistent store" vertex="1">
+          <mxGeometry height="30" width="150" x="140" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="customer" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=light-dark(#F5F5F5,#CCCCCC);strokeColor=#666666;fontColor=light-dark(#000000,#000000);fontSize=16;" value="Customer" vertex="1">
+          <mxGeometry height="71" width="35" x="422" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="marketly" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=light-dark(#DAE8FC,#E5E6ED);strokeColor=#6c8ebf;fontColor=light-dark(#000000,#000000);fontSize=16;fontStyle=1;arcSize=8;strokeWidth=1.5;" value="Marketly&#xa;(Online Store)&#xa;&#xa;Orders · Stock · Cart" vertex="1">
+          <mxGeometry height="97" width="200" x="356" y="302" as="geometry" />
+        </mxCell>
+        <mxCell id="paystack" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=light-dark(#DAE8FC,#E5E6ED);strokeColor=#6c8ebf;fontColor=light-dark(#000000,#000000);fontSize=16;fontStyle=1;arcSize=8;strokeWidth=1.5;" value="Paystack&#xa;(Test Mode)&#xa;&#xa;Hosted Checkout&#xa;Card · Bank Transfer" vertex="1">
+          <mxGeometry height="130" width="196" x="1862" y="318.5" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=light-dark(transparent,#F7F7FF);strokeColor=#6c8ebf;dashed=1;fontSize=18;fontStyle=1;fontColor=light-dark(#000000,#000000);arcSize=2;strokeWidth=1.5;" value="Payment Service" vertex="1">
+          <mxGeometry height="1100" width="1120" x="640" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="auth" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#FFE6CC,#FFF3E0);strokeColor=#d79b00;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=8;" value="Bearer MERCHANT_API_KEY&#xa;(required on all merchant APIs)" vertex="1">
+          <mxGeometry height="60" width="260" x="680" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="apiBox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#FFF2CC,#FFF9CC);strokeColor=#d6b656;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=6;" value="&lt;b&gt;Public API&lt;/b&gt;&lt;br&gt;GET /health&lt;br&gt;POST /payments&lt;br&gt;GET /payments/:id&lt;br&gt;POST /payments/:id/refunds&lt;br&gt;POST /admin/reset &lt;i&gt;(TEST_MODE)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="120" width="260" x="680" y="288" as="geometry" />
+        </mxCell>
+        <mxCell id="payments" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#FFF2CC,#FFF9CC);strokeColor=#d6b656;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=6;" value="&lt;b&gt;payments/&lt;/b&gt;&lt;br&gt;• Create pending payment&lt;br&gt;• Idempotency keys&lt;br&gt;• State machine&lt;br&gt;• One active payment / order" vertex="1">
+          <mxGeometry height="109" width="240" x="1026" y="275" as="geometry" />
+        </mxCell>
+        <mxCell id="refunds" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#FFF2CC,#FFF9CC);strokeColor=#d6b656;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=6;" value="&lt;b&gt;refunds/&lt;/b&gt;&lt;br&gt;• Full / partial refunds&lt;br&gt;• Balance reservation&lt;br&gt;• Idempotent creates" vertex="1">
+          <mxGeometry height="86" width="220" x="1280" y="177" as="geometry" />
+        </mxCell>
+        <mxCell id="providers" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#FFF2CC,#FFF9CC);strokeColor=#d6b656;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=6;" value="&lt;b&gt;providers/&lt;/b&gt;&lt;br&gt;PaymentProvider interface&lt;br&gt;• initialize transaction&lt;br&gt;• verify transaction&lt;br&gt;• create refund&lt;br&gt;&lt;i&gt;(Paystack is the only impl)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="127" width="240" x="1480" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="webhooks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#FFE6CC,#FFF3E0);strokeColor=#d79b00;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=6;" value="&lt;b&gt;webhooks/&lt;/b&gt;&lt;br&gt;POST /webhooks/paystack&lt;br&gt;• HMAC-SHA512 signature&lt;br&gt;• Event dedup key&lt;br&gt;• charge.success&lt;br&gt;• refund.processed / failed&lt;br&gt;• Verify before state change" vertex="1">
+          <mxGeometry height="143" width="250" x="1475" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="callbacks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#FFF2CC,#FFF9CC);strokeColor=#d6b656;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=6;" value="&lt;b&gt;callbacks/&lt;/b&gt;&lt;br&gt;Outbox + retry worker&lt;br&gt;• payment.succeeded&lt;br&gt;• payment.expired&lt;br&gt;• payment.refunded&lt;br&gt;• payment.refund_failed&lt;br&gt;HMAC-SHA256 signed&lt;br&gt;Exponential backoff (≥6)" vertex="1">
+          <mxGeometry height="163" width="204" x="673" y="534" as="geometry" />
+        </mxCell>
+        <mxCell id="jobs" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#FFF2CC,#FFF9CC);strokeColor=#d6b656;fontColor=light-dark(#000000,#000000);fontSize=14;arcSize=6;" value="&lt;b&gt;jobs/&lt;/b&gt;&lt;br&gt;Expiry &amp;amp; reconciliation&lt;br&gt;• Pending &amp;gt; TIMEOUT → verify&lt;br&gt;• Success → succeeded&lt;br&gt;• Else → expired&lt;br&gt;• Late transfer: expired →&lt;br&gt;&amp;nbsp;&amp;nbsp;succeeded (late: true)" vertex="1">
+          <mxGeometry height="138" width="260" x="998" y="586" as="geometry" />
+        </mxCell>
+        <mxCell id="states" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#D5E8D4,#E0FFE1);strokeColor=#82b366;fontColor=light-dark(#000000,#000000);fontSize=13;arcSize=6;" value="&lt;b&gt;Payment states&lt;/b&gt;&lt;br&gt;pending → succeeded | expired&lt;br&gt;expired → succeeded&lt;br&gt;succeeded → partially_refunded → refunded&lt;br&gt;&lt;b&gt;Refund states:&lt;/b&gt; pending → processed | failed" vertex="1">
+          <mxGeometry height="104" width="285" x="680" y="832" as="geometry" />
+        </mxCell>
+        <mxCell id="db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=none;strokeColor=#4c7093;fontColor=light-dark(#000000,#000000);fontSize=13;" value="&lt;b&gt;Database&lt;/b&gt;&lt;br&gt;payments · refunds · idempotency_keys&lt;br&gt;processed_events · callback_outbox&lt;br&gt;Unique constraints + row locks for concurrency" vertex="1">
+          <mxGeometry height="120" width="280" x="1123" y="911" as="geometry" />
+        </mxCell>
+        <mxCell id="flowNotes" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=light-dark(#DAE8FC,#E5E6ED);strokeColor=#6c8ebf;fontColor=light-dark(#000000,#000000);fontSize=13;arcSize=6;" value="&lt;b&gt;Happy path (card)&lt;/b&gt;&lt;br&gt;1. Marketly POST /payments&lt;br&gt;2. Save pending payment → Paystack initialize (ref = paymentId) → return checkoutUrl&lt;br&gt;3. Customer pays on Paystack hosted page&lt;br&gt;4. Paystack charge.success webhook → verify signature + verify API → mark succeeded&lt;br&gt;5. Write signed callback to outbox → deliver to Marketly" vertex="1">
+          <mxGeometry height="115" width="530" x="680" y="1060" as="geometry" />
+        </mxCell>
+        <mxCell id="eCust" edge="1" parent="1" source="customer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=13;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="paystack" value="3. Pay on hosted checkout">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="150.8" />
+              <mxPoint x="1960" y="150.8" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eM1" edge="1" parent="1" source="marketly" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=13;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1;exitY=0.35;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="auth" value="1. POST /payments">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eA1" edge="1" parent="1" source="auth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;" target="apiBox" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eA2" edge="1" parent="1" source="apiBox" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1;exitY=0.35;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="payments" value="create / get">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eA3" edge="1" parent="1" source="apiBox" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="refunds" value="refund">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="372" />
+              <mxPoint x="960" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eP1" edge="1" parent="1" source="payments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1.001;exitY=0.705;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitPerimeter=0;" target="providers" value="2. initialize">
+          <mxGeometry relative="1" x="-0.0359" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eR1" edge="1" parent="1" source="refunds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="providers" value="refund API">
+          <mxGeometry relative="1" x="-0.3279" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eProv" edge="1" parent="1" source="providers" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=13;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="paystack" value="Only component&#xa;that talks to Paystack">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eWh" edge="1" parent="1" source="paystack" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=13;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="webhooks" value="4. Webhooks">
+          <mxGeometry relative="1" x="0.0565" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1960" y="448.5" />
+              <mxPoint x="1960" y="581.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eWhV" edge="1" parent="1" source="webhooks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;dashed=1;strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="providers" value="verify txn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eWhC" edge="1" parent="1" source="webhooks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=-0.002;exitY=0.348;exitDx=0;exitDy=0;entryX=0.993;entryY=0.166;entryDx=0;entryDy=0;exitPerimeter=0;entryPerimeter=0;" target="callbacks" value="5. enqueue callback">
+          <mxGeometry relative="1" x="0.1296" as="geometry">
+            <Array as="points">
+              <mxPoint x="1474.5" y="561.1" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eCb" edge="1" parent="1" source="callbacks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=13;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;" target="marketly" value="Signed callback&#xa;to CALLBACK_URL">
+          <mxGeometry relative="1" x="-0.2774" as="geometry">
+            <Array as="points">
+              <mxPoint x="602.4" y="614" />
+              <mxPoint x="602.4" y="369.9" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eJ1" edge="1" parent="1" source="jobs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;dashed=1;strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" target="providers" value="reconcile / verify">
+          <mxGeometry relative="1" x="0.5118" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1266.2" y="655" />
+              <mxPoint x="1266.2" y="415.3" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eJ2" edge="1" parent="1" source="jobs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;dashed=1;strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" target="callbacks" value="expire / late">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" edge="1" parent="1" source="payments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4c7093;dashed=1;strokeWidth=1.5;fontSize=11;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.639;entryY=-0.005;entryDx=0;entryDy=0;entryPerimeter=0;" target="db" value="">
+          <mxGeometry relative="1" x="0.0564" as="geometry">
+            <Array as="points">
+              <mxPoint x="1146" y="463.3" />
+              <mxPoint x="1301.9" y="463.3" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d2" edge="1" parent="1" source="callbacks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4c7093;dashed=1;strokeWidth=1.5;fontSize=11;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" target="db" value="outbox write&#xa;(same txn)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="805" y="796.8" />
+              <mxPoint x="1106.8" y="796.8" />
+              <mxPoint x="1106.8" y="953" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d3" edge="1" parent="1" source="webhooks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4c7093;dashed=1;strokeWidth=1.5;fontSize=11;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.4;entryDx=0;entryDy=0;" target="db" value="dedup + state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" edge="1" parent="1" source="jobs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4c7093;dashed=1;strokeWidth=1.5;fontSize=11;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="db" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" edge="1" parent="1" source="refunds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4c7093;dashed=1;strokeWidth=1.5;fontSize=11;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.855;entryY=0;entryDx=0;entryDy=4.35;entryPerimeter=0;" target="db" value="">
+          <mxGeometry relative="1" x="-0.0079" as="geometry">
+            <Array as="points">
+              <mxPoint x="1445" y="430" />
+              <mxPoint x="1362.4" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eRet" edge="1" parent="1" source="apiBox" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=light-dark(#000000,#000000);strokeWidth=2;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=none;exitX=0;exitY=0.85;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="marketly" value="201 + checkoutUrl">
+          <mxGeometry relative="1" x="0.2416" y="-3" as="geometry">
+            <mxPoint x="3" y="3" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
