@@ -2,6 +2,7 @@ import "dotenv/config";
 import type { Request } from "express";
 import express from "express";
 import { startCallbackWorker } from "./callbacks/index.js";
+import { pool } from "./db/client.js";
 import { startExpiryJob } from "./jobs/expiry.js";
 import { createPayment, getPayment } from "./payments/index.js";
 import { createRefund } from "./refunds/index.js";
@@ -36,6 +37,23 @@ app.use((req, res, next) => {
 app.post("/payments", createPayment);
 app.get("/payments/:id", getPayment);
 app.post("/payments/:id/refunds", createRefund);
+
+app.post("/admin/reset", async (_req, res) => {
+  if (process.env.TEST_MODE !== "true") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  try {
+    await pool.query(
+      "TRUNCATE callback_outbox, webhook_events, idempotency_keys, refunds, payments",
+    );
+    res.status(204).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not reset" });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Listening on ${port}`);
