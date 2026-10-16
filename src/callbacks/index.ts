@@ -1,8 +1,16 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { pool } from "../db/client.js";
 
 const MAX_ATTEMPTS = 6;
+
+function marketlySignature(body: string) {
+  const secret = process.env.CALLBACK_SECRET;
+  if (!secret) throw new Error("CALLBACK_SECRET is not set");
+  const timestamp = Math.floor(Date.now() / 1000);
+  const digest = createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+  return `t=${timestamp},v1=${digest}`;
+}
 
 type SucceededPayment = {
   id: string;
@@ -41,8 +49,8 @@ export async function enqueueSucceededCallback(client: PoolClient, payment: Succ
 
 export function startCallbackWorker() {
   const url = process.env.CALLBACK_URL;
-  if (!url) {
-    console.error("CALLBACK_URL is not set");
+  if (!url || !process.env.CALLBACK_SECRET) {
+    console.error("CALLBACK_URL and CALLBACK_SECRET are required");
     return;
   }
 
@@ -76,11 +84,15 @@ async function deliverCallback(
   url: string,
   row: { id: string; payload: unknown; attempts: number },
 ) {
+  const body = JSON.stringify(row.payload);
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(row.payload),
+      headers: {
+        "content-type": "application/json",
+        "X-Marketly-Signature": marketlySignature(body),
+      },
+      body,
       signal: AbortSignal.timeout(10_000),
     });
     const text = await response.text();
