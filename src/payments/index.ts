@@ -31,6 +31,7 @@ export async function createPayment(req: Request, res: Response) {
   const client = await pool.connect();
   let locked = false;
   let paymentId: string | undefined;
+  let retrying = false;
 
   try {
     await client.query(`SELECT pg_advisory_lock(hashtextextended($1, 0))`, [lockKey]);
@@ -62,6 +63,7 @@ export async function createPayment(req: Request, res: Response) {
       }
       if (!saved.payment_id) throw new Error("Payment idempotency key has no payment");
       paymentId = saved.payment_id;
+      retrying = true;
       await client.query("COMMIT");
     } else {
       paymentId = randomUUID();
@@ -87,12 +89,32 @@ export async function createPayment(req: Request, res: Response) {
       }
     }
 
-    const checkoutUrl = await paymentProvider.initialize({
-      email: customerEmail,
-      amount,
-      reference: paymentId,
-      callbackUrl: returnUrl,
-    });
+    let checkoutUrl = await savedCheckoutUrl(paymentId);
+    if (!checkoutUrl && retrying) {
+      try {
+        const verified = await paymentProvider.verify(paymentId);
+        if (verified) {
+          res.status(502).json({ error: "Could not start checkout" });
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+        res.status(502).json({ error: "Could not start checkout" });
+        return;
+      }
+    }
+    if (!checkoutUrl) {
+      checkoutUrl = await paymentProvider.initialize({
+        email: customerEmail,
+        amount,
+        reference: paymentId,
+        callbackUrl: returnUrl,
+      });
+      await pool.query(
+        `UPDATE payments SET checkout_url = $2, updated_at = now() WHERE id = $1`,
+        [paymentId, checkoutUrl],
+      );
+    }
     const responseBody = {
       paymentId,
       orderId,
@@ -102,10 +124,6 @@ export async function createPayment(req: Request, res: Response) {
       checkoutUrl,
     };
     await client.query("BEGIN");
-    await client.query(
-      `UPDATE payments SET checkout_url = $2, updated_at = now() WHERE id = $1`,
-      [paymentId, checkoutUrl],
-    );
     await client.query(
       `UPDATE idempotency_keys
        SET response_status = 201, response_body = $2::jsonb
@@ -128,6 +146,14 @@ export async function createPayment(req: Request, res: Response) {
     }
     client.release();
   }
+}
+
+async function savedCheckoutUrl(paymentId: string) {
+  const result = await pool.query<{ checkout_url: string | null }>(
+    `SELECT checkout_url FROM payments WHERE id = $1`,
+    [paymentId],
+  );
+  return result.rows[0]?.checkout_url ?? null;
 }
 
 function isUniqueViolation(err: unknown) {

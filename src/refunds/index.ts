@@ -47,6 +47,8 @@ export async function createRefund(req: Request, res: Response) {
     let refundId: string;
     let reference: string;
     let amount: number;
+    let ownerPaymentId: string;
+    let knownPaystackRefundId: string | null = null;
     let responseBody: { refundId: string; amount: number; status: "pending" };
 
     if (saved) {
@@ -61,8 +63,13 @@ export async function createRefund(req: Request, res: Response) {
         return;
       }
       if (!saved.refund_id) throw new Error("Refund idempotency key has no refund");
-      const refund = await client.query<{ amount: number; paystack_reference: string }>(
-        `SELECT r.amount, p.paystack_reference
+      const refund = await client.query<{
+        amount: number;
+        paystack_reference: string;
+        paystack_refund_id: string | null;
+        payment_id: string;
+      }>(
+        `SELECT r.amount, r.paystack_refund_id, r.payment_id, p.paystack_reference
          FROM refunds r
          JOIN payments p ON p.id = r.payment_id
          WHERE r.id = $1`,
@@ -73,6 +80,8 @@ export async function createRefund(req: Request, res: Response) {
       refundId = saved.refund_id;
       reference = row.paystack_reference;
       amount = row.amount;
+      ownerPaymentId = row.payment_id;
+      knownPaystackRefundId = row.paystack_refund_id;
       responseBody = saved.response_body as { refundId: string; amount: number; status: "pending" };
       await client.query("COMMIT");
     } else {
@@ -84,6 +93,7 @@ export async function createRefund(req: Request, res: Response) {
       refundId = reserved.refundId;
       reference = reserved.reference;
       amount = reserved.amount;
+      ownerPaymentId = reserved.paymentId;
       responseBody = { refundId, amount, status: "pending" };
       await client.query(
         `INSERT INTO idempotency_keys (key, scope, request_hash, response_status, response_body, payment_id, refund_id)
@@ -95,7 +105,20 @@ export async function createRefund(req: Request, res: Response) {
 
     let paystackRefundId: string;
     try {
-      paystackRefundId = await paymentProvider.refund(reference, amount);
+      if (knownPaystackRefundId) {
+        paystackRefundId = knownPaystackRefundId;
+      } else {
+        const used = await pool.query<{ paystack_refund_id: string }>(
+          `SELECT paystack_refund_id FROM refunds
+           WHERE payment_id = $1 AND paystack_refund_id IS NOT NULL AND id <> $2`,
+          [ownerPaymentId, refundId],
+        );
+        paystackRefundId = await paymentProvider.refund(
+          reference,
+          amount,
+          used.rows.map((row) => row.paystack_refund_id),
+        );
+      }
     } catch (err) {
       if (err instanceof PaystackError && err.status < 500) {
         await client.query("BEGIN");

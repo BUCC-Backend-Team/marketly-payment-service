@@ -29,7 +29,7 @@ export interface PaymentProvider {
     callbackUrl: string;
   }): Promise<string>;
   verify(reference: string): Promise<VerifiedTransaction | null>;
-  refund(transaction: string, amount: number): Promise<string>;
+  refund(transaction: string, amount: number, usedIds?: string[]): Promise<string>;
 }
 
 class PaystackProvider implements PaymentProvider {
@@ -77,22 +77,65 @@ class PaystackProvider implements PaymentProvider {
     });
   }
 
-  async refund(transaction: string, amount: number) {
-    return withRetry(async () => {
-      const response = await this.request("/refund", {
-        method: "POST",
-        body: JSON.stringify({ transaction, amount }),
+  async refund(transaction: string, amount: number, usedIds: string[] = []) {
+    try {
+      return await this.requestRefund(transaction, amount);
+    } catch (err) {
+      const existing = await this.findRefund(transaction, amount, usedIds).catch((lookupErr) => {
+        console.error(lookupErr);
+        return null;
       });
-      const body = (await response.json()) as {
-        status?: boolean;
-        message?: string;
-        data?: { id?: number | string };
-      };
-      if (!response.ok || !body.status || body.data?.id == null) {
-        throw new PaystackError(body.message ?? "Paystack refund failed", response.status);
-      }
-      return String(body.data.id);
+      if (existing) return existing;
+      throw err;
+    }
+  }
+
+  private async requestRefund(transaction: string, amount: number) {
+    const response = await this.request("/refund", {
+      method: "POST",
+      body: JSON.stringify({ transaction, amount }),
     });
+    const body = (await response.json()) as {
+      status?: boolean;
+      message?: string;
+      data?: { id?: number | string };
+    };
+    if (!response.ok || !body.status || body.data?.id == null) {
+      throw new PaystackError(body.message ?? "Paystack refund failed", response.status);
+    }
+    return String(body.data.id);
+  }
+
+  private async findRefund(transaction: string, amount: number, usedIds: string[]) {
+    const response = await this.request(
+      `/refund?reference=${encodeURIComponent(transaction)}&perPage=50`,
+    );
+    if (response.status >= 500) {
+      throw new PaystackError(`Paystack refund lookup failed (${response.status})`, response.status);
+    }
+    const body = (await response.json()) as {
+      data?: Array<{
+        id?: number | string;
+        amount?: number;
+        status?: string;
+        merchant_note?: string | null;
+        customer_note?: string | null;
+        transaction?: { reference?: string } | number;
+      }>;
+    };
+    const match = body.data?.find((row) => {
+      const id = row.id == null ? "" : String(row.id);
+      if (!id || usedIds.includes(id) || row.status === "failed" || Number(row.amount) !== amount) {
+        return false;
+      }
+      const reference = typeof row.transaction === "object" ? row.transaction?.reference : undefined;
+      if (reference) return reference === transaction;
+      if (row.merchant_note != null || row.customer_note != null) {
+        return `${row.merchant_note ?? ""} ${row.customer_note ?? ""}`.includes(transaction);
+      }
+      return true;
+    });
+    return match?.id == null ? null : String(match.id);
   }
 
   private request(path: string, init?: RequestInit) {
