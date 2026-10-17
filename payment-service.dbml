@@ -58,7 +58,7 @@ Table payments {
   updated_at timestamp [not null, default: `now()`]
 
   indexes {
-    order_id [note: "Implement as a PARTIAL UNIQUE index in SQL WHERE status IN ('pending','succeeded','partially_refunded','refunded') - one active payment per order (dbdiagram can't express partial indexes)"]
+    order_id [note: "Implement as a PARTIAL UNIQUE index in SQL WHERE status IN ('pending','succeeded') - 409 payment_exists only for those statuses (dbdiagram can't express partial indexes)"]
     (status, created_at) [name: 'idx_payments_status_created', note: 'Expiry/reconciliation job scan']
   }
 }
