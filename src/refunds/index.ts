@@ -57,9 +57,9 @@ export async function createRefund(req: Request, res: Response) {
         res.status(422).json({ error: "Idempotency key was already used with a different request" });
         return;
       }
-      if (saved.response_status === 202) {
+      if (saved.response_status !== 0) {
         await client.query("COMMIT");
-        res.set("Idempotent-Replayed", "true").status(202).json(saved.response_body);
+        res.set("Idempotent-Replayed", "true").status(saved.response_status).json(saved.response_body);
         return;
       }
       if (!saved.refund_id) throw new Error("Refund idempotency key has no refund");
@@ -120,15 +120,21 @@ export async function createRefund(req: Request, res: Response) {
         );
       }
     } catch (err) {
+      console.error(err);
       if (err instanceof PaystackError && err.status < 500) {
+        const declined = { error: "Could not start refund" };
         await client.query("BEGIN");
-        await client.query(`DELETE FROM idempotency_keys WHERE scope = 'refund_create' AND key = $1`, [
-          idempotencyKey,
-        ]);
+        await client.query(
+          `UPDATE idempotency_keys
+           SET response_status = 502, response_body = $2::jsonb, refund_id = NULL
+           WHERE scope = 'refund_create' AND key = $1`,
+          [idempotencyKey, JSON.stringify(declined)],
+        );
         await client.query(`DELETE FROM refunds WHERE id = $1`, [refundId]);
         await client.query("COMMIT");
+        res.status(502).json(declined);
+        return;
       }
-      console.error(err);
       res.status(502).json({ error: "Could not start refund" });
       return;
     }
