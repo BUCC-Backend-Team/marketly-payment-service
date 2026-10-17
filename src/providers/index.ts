@@ -78,16 +78,18 @@ class PaystackProvider implements PaymentProvider {
   }
 
   async refund(transaction: string, amount: number, usedIds: string[] = []) {
-    try {
-      return await this.requestRefund(transaction, amount);
-    } catch (err) {
-      const existing = await this.findRefund(transaction, amount, usedIds).catch((lookupErr) => {
-        console.error(lookupErr);
-        return null;
-      });
-      if (existing) return existing;
-      throw err;
-    }
+    return withRetry(async () => {
+      try {
+        return await this.requestRefund(transaction, amount);
+      } catch (err) {
+        const existing = await this.findRefund(transaction, amount, usedIds).catch((lookupErr) => {
+          console.error(lookupErr);
+          return null;
+        });
+        if (existing) return existing;
+        throw err;
+      }
+    });
   }
 
   private async requestRefund(transaction: string, amount: number) {
